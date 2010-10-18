@@ -17,6 +17,9 @@ class UsersController < ApplicationController
       flash[:success] = "Welcome to the Sample App!"
     else
       @title = "Sign up"
+      # clear passwords so form fields are empty
+      @user.password = ""
+      @user.password_confirmation = ""
       render 'new'
     end
   end
