@@ -38,7 +38,15 @@ describe UsersController do
       response.should have_selector("input",
                                     :name => "user[password_confirmation]", 
                                     :type => "password")
-    end    
+    end 
+    
+    it "should redirect to root_path if user already signed in" do
+      @user = Factory(:user)
+      test_sign_in(@user)
+      get :new
+      response.should redirect_to(root_path)        
+    end 
+      
   end
   
   
@@ -241,6 +249,7 @@ describe UsersController do
 
 
   describe "GET 'index'" do
+    
     describe "for non-signed-in users" do
       it "should deny access" do
         get :index
@@ -292,21 +301,38 @@ describe UsersController do
                                            :content => "2")
         response.should have_selector("a", :href => "/users?page=2",
                                            :content => "Next")
-      end      
+      end
+      
+       it "should not show delete links if user viewing page is not admin" do
+        get :index
+        response.should_not have_selector("a",  :href => "/users/#{@user.id}",
+                                            :content => "delete")
+      end
+      
+      it "should show delete links if user viewing page is admin" do
+        @user.toggle!(:admin)
+        get :index
+        response.should have_selector("a",  :href => "/users/#{@user.id}",
+                                            :content => "delete")
+      end       
+
     end
+    
   end
 
 
-  describe "DELETE 'destroy'" do    
+  describe "DELETE 'destroy'" do
     before(:each) do
-      @user = Factory(:user)
+      # mk: just so we have one user signed in:
+      test_sign_in(Factory(:user, :email => Factory.next(:email))) 
+      
+      @user = Factory(:user, :email => Factory.next(:email))
     end
 
     describe "as a non-signed-in user" do
       it "should deny access" do
-        puts y @user
         delete :destroy, :id => @user
-        response.should redirect_to(signin_path)
+        response.should redirect_to(root_path)
       end
     end
 
@@ -321,13 +347,21 @@ describe UsersController do
     describe "as an admin user" do
       before(:each) do
         admin = Factory(:user, :email => "admin@example.com", :admin => true)
-        test_sign_in(admin)
+        test_sign_in(admin)        
       end
 
-      it "should destroy the user" do
+      it "should destroy a non admin user" do
         lambda do
           delete :destroy, :id => @user
         end.should change(User, :count).by(-1)
+      end
+      
+      it "should not destroy another admin user" do
+        another_admin = Factory(:user, :email => "another_admin@example.com", 
+                                  :admin => true)
+        lambda do
+          delete :destroy, :id => another_admin
+        end.should_not change(User, :count).by(-1)
       end
 
       it "should redirect to the users page" do
