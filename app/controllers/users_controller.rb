@@ -11,6 +11,7 @@ class UsersController < ApplicationController
   
   def show
     @user = User.find(params[:id])
+    @microposts = @user.microposts.paginate(:page => params[:page])
     @title = @user.name
   end
   
@@ -55,7 +56,7 @@ class UsersController < ApplicationController
  
     user = User.find(params[:id])
     if user.admin?
-      flash[:error] = "Deleting an admin use is not permitted"
+      flash[:error] = "Deleting an admin user is not permitted"
     else
       user.destroy
       flash[:success] = "User destroyed"
@@ -65,10 +66,6 @@ class UsersController < ApplicationController
   end
   
   private
-  def authenticate
-    deny_access unless signed_in?
-  end
-  
   def correct_user
     @user = User.find(params[:id])
     redirect_to(root_path) unless current_user?(@user)

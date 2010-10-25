@@ -35,6 +35,9 @@ class User < ActiveRecord::Base
   validates :email, :presence => true,
                     :format => { :with => email_regex },
                     :uniqueness => { :case_sensitive => false }
+                    
+  
+  has_many :microposts, :dependent => :destroy
 
   
   # Return true if the user's password matches the submitted password.
@@ -52,6 +55,11 @@ class User < ActiveRecord::Base
   def self.authenticate_with_salt(id, cookie_salt)
     user = find_by_id(id)
     (user && user.salt == cookie_salt) ? user : nil
+  end
+
+  def feed
+    # This is preliminary. See Chapter 12 for the full implementation.
+    Micropost.where("user_id = ?", id)
   end
 
   private
